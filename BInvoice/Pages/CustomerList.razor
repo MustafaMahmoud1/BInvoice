@@ -1,0 +1,74 @@
+﻿@page "/customers"
+@using BInvoice.DataModels
+@inject CustomerService customerService
+@inject NavigationManager NavigationManager
+
+
+<h3>Customers</h3>
+
+<!-- Search Bar -->
+<input type="text" @bind="searchTerm" placeholder="Search by name or code" />
+<button @onclick="SearchCustomers">Search</button>
+<button @onclick="AddNewCustomer">Add New Customer</button>
+
+<!-- Customer List -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var customer in customers)
+        {
+            <tr>
+                <td>@customer.Name</td>
+                <td>@customer.Code</td>
+                <td>
+                    <button @onclick="() => EditCustomer(customer.CustomerId)">Edit</button>
+                    <button @onclick="() => DeleteCustomer(customer.CustomerId)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Customer> customers = new List<Customer>();
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await customerService.GetAllCustomers();
+    }
+
+    private async Task SearchCustomers()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            customers = await customerService.GetAllCustomers();
+        }
+        else
+        {
+            customers = await customerService.SearchCustomers(searchTerm);
+        }
+    }
+
+    private void AddNewCustomer()
+    {
+        NavigationManager.NavigateTo("/customers/add");
+    }
+
+    private void EditCustomer(int id)
+    {
+        NavigationManager.NavigateTo($"/customers/edit/{id}");
+    }
+
+    private async Task DeleteCustomer(int id)
+    {
+        await customerService.DeleteCustomer(id);
+        customers = await customerService.GetAllCustomers();
+    }
+}

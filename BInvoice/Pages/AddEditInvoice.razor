@@ -1,0 +1,145 @@
+﻿@page "/invoices/add"
+@page "/invoices/edit/{id:int}"
+@using BInvoice.DataModels
+@inject InvoiceService invoiceService
+@inject CustomerService customerService
+@inject ItemService itemService
+@inject TaxService taxService
+@inject NavigationManager NavigationManager
+
+<h3>@(isEdit ? "Edit Invoice" : "Add New Invoice")</h3>
+
+<div>
+    <label>Invoice Code:</label>
+    <input type="text" @bind="invoice.Code" />
+</div>
+<div>
+    <label>Customer:</label>
+    <select @bind="invoice.CustomerId">
+        @foreach (var customer in customers)
+        {
+            <option value="@customer.CustomerId">@customer.Name</option>
+        }
+    </select>
+</div>
+<div>
+    <label>Date Issued:</label>
+    <input type="datetime-local" @bind="invoice.DateTimeIssued" />
+</div>
+
+<h4>Invoice Lines</h4>
+<button @onclick="AddInvoiceLine">Add Item</button>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Amount Sold</th>
+            <th>Total</th>
+            <th>Taxes</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in invoice.InvoiceLines)
+        {
+            <tr>
+                <td>
+                    <select @bind="line.ItemId">
+                        @foreach (var item in items)
+                        {
+                            <option value="@item.ItemId">@item.Name</option>
+                        }
+                    </select>
+                </td>
+                <td><input type="number" @bind="line.Quantity" /></td>
+                <td><input type="number" @bind="line.AmountSold" /></td>
+                <td>@(line.Quantity * line.AmountSold)</td>
+                <td>
+                    <ul>
+                        @foreach (var tax in line.Taxes)
+                        {
+                            <li>@tax.TaxName: @tax.Amount</li>
+                        }
+                    </ul>
+                    <button @onclick="() => AddTaxToLine(line)">Add Tax</button>
+                </td>
+                <td>
+                    <button @onclick="() => RemoveInvoiceLine(line)">Remove</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h4>Net Amount: @invoice.NetAmount</h4>
+
+<button @onclick="SaveInvoice">Save</button>
+<button @onclick="Cancel">Cancel</button>
+
+@code {
+    private Invoice invoice = new Invoice();
+    private List<Customer> customers = new List<Customer>();
+    private List<Item> items = new List<Item>();
+    private bool isEdit = false;
+
+    [Parameter]
+    public int? id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await customerService.GetAllCustomers();
+        items = await itemService.GetAllItems();
+
+        if (id.HasValue)
+        {
+            isEdit = true;
+            invoice = await invoiceService.GetInvoiceById(id.Value);
+        }
+    }
+
+    private void AddInvoiceLine()
+    {
+        invoice.InvoiceLines.Add(new InvoiceLine());
+    }
+
+    private void RemoveInvoiceLine(InvoiceLine line)
+    {
+        invoice.InvoiceLines.Remove(line);
+    }
+
+    private async Task AddTaxToLine(InvoiceLine line)
+    {
+        var taxes = await taxService.GetAllTaxes();
+        var taxId = taxes.First().TaxId; // Just for demo, you'd normally have a selection here.
+        var taxAmount = CalculateTaxAmount(line.Quantity * line.AmountSold); // Dummy function for calculating taxes.
+
+        line.Taxes.Add(new Tax { TaxId = taxId, TaxName = taxes.First().TaxName, Amount = taxAmount });
+    }
+
+    private async Task SaveInvoice()
+    {
+        invoice.NetAmount = invoice.InvoiceLines.Sum(line => line.ItemNetAmount);
+        if (isEdit)
+        {
+            await invoiceService.UpdateInvoice(invoice);
+        }
+        else
+        {
+            await invoiceService.AddInvoice(invoice);
+        }
+        NavigationManager.NavigateTo("/invoices");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/invoices");
+    }
+
+    private decimal CalculateTaxAmount(decimal amount)
+    {
+        // Placeholder function for tax calculation logic
+        return amount * 0.1m;
+    }
+}

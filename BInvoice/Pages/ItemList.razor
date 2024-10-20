@@ -1,0 +1,74 @@
+﻿@page "/items"
+@inject ItemService itemService
+
+<h3>Items</h3>
+
+<!-- Search Bar -->
+<input type="text" @bind="searchTerm" placeholder="Search by name or code" />
+<button @onclick="SearchItems">Search</button>
+<button @onclick="AddNewItem">Add New Item</button>
+
+<!-- Item List -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in items)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Code</td>
+                <td>
+                    <button @onclick="() => EditItem(item.Id)">Edit</button>
+                    <button @onclick="() => DeleteItem(item.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Item> items = new List<Item>();
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load all items on page load
+        items = await itemService.GetAllItems();
+    }
+
+    private async Task SearchItems()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            items = await itemService.GetAllItems();
+        }
+        else
+        {
+            items = await itemService.SearchItems(searchTerm);
+        }
+    }
+
+    private void AddNewItem()
+    {
+        // Navigate to Add/Edit page
+        NavigationManager.NavigateTo("/items/add");
+    }
+
+    private void EditItem(int id)
+    {
+        // Navigate to Edit page
+        NavigationManager.NavigateTo($"/items/edit/{id}");
+    }
+
+    private async Task DeleteItem(int id)
+    {
+        await itemService.DeleteItem(id);
+        items = await itemService.GetAllItems();
+    }
+}

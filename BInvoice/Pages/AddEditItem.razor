@@ -1,0 +1,54 @@
+﻿@page "/items/add"
+@page "/items/edit/{id:int}"
+@using BInvoice.DataModels
+@inject ItemService itemService
+@inject NavigationManager NavigationManager
+
+<h3>@(isEdit ? "Edit Item" : "Add New Item")</h3>
+
+<div>
+    <label>Name:</label>
+    <input type="text" @bind="item.Name" />
+</div>
+<div>
+    <label>Code:</label>
+    <input type="text" @bind="item.Code" />
+</div>
+
+<button @onclick="SaveItem">Save</button>
+<button @onclick="Cancel">Cancel</button>
+
+@code {
+    private Item item = new Item();
+    private bool isEdit = false;
+
+    [Parameter]
+    public int? id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (id.HasValue)
+        {
+            isEdit = true;
+            item = await itemService.GetItemById(id.Value);
+        }
+    }
+
+    private async Task SaveItem()
+    {
+        if (isEdit)
+        {
+            await itemService.UpdateItem(item);
+        }
+        else
+        {
+            await itemService.AddItem(item);
+        }
+        NavigationManager.NavigateTo("/items");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/items");
+    }
+}

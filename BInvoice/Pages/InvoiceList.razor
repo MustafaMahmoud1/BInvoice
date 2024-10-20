@@ -1,0 +1,78 @@
+﻿@page "/invoices"
+@using BInvoice.DataModels
+@inject InvoiceService invoiceService
+@inject NavigationManager NavigationManager
+
+
+<h3>Invoices</h3>
+
+<!-- Search Bar -->
+<input type="text" @bind="searchTerm" placeholder="Search by code or customer" />
+<button @onclick="SearchInvoices">Search</button>
+<button @onclick="AddNewInvoice">Add New Invoice</button>
+
+<!-- Invoice List -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>Invoice Code</th>
+            <th>Customer</th>
+            <th>Date Issued</th>
+            <th>Net Amount</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var invoice in invoices)
+        {
+            <tr>
+                <td>@invoice.Code</td>
+                <td>@invoice.Customer.Name</td>
+                <td>@invoice.DateTimeIssued</td>
+                <td>@invoice.NetAmount</td>
+                <td>
+                    <button @onclick="() => EditInvoice(invoice.InvoiceId)">Edit</button>
+                    <button @onclick="() => DeleteInvoice(invoice.InvoiceId)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Invoice> invoices = new List<Invoice>();
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        invoices = await invoiceService.GetAllInvoices();
+    }
+
+    private async Task SearchInvoices()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            invoices = await invoiceService.GetAllInvoices();
+        }
+        else
+        {
+            invoices = await invoiceService.SearchInvoices(searchTerm);
+        }
+    }
+
+    private void AddNewInvoice()
+    {
+        NavigationManager.NavigateTo("/invoices/add");
+    }
+
+    private void EditInvoice(int id)
+    {
+        NavigationManager.NavigateTo($"/invoices/edit/{id}");
+    }
+
+    private async Task DeleteInvoice(int id)
+    {
+        await invoiceService.DeleteInvoice(id);
+        invoices = await invoiceService.GetAllInvoices();
+    }
+}
